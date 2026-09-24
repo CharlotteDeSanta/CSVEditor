@@ -2115,16 +2115,18 @@ public partial class MainWindow : Window
         MessageBox.Show(
             this,
             """
-            CSV Editor — 图形化 CSV 编辑器
+            科烽智能 CSV 编辑器
 
-            · 界面设计参考 csveditor.com
-            · 所有解析与编辑均在本机完成，数据不会上传
-            · 保留原始编码、换行符与引号风格
+            · 稳定性高，不闪退
+            · 性能优秀，十万行表格约 2 秒打开
+            · 功能易用，打开 → 修改 → 保存
+            · 无需联网，所有处理都在本机完成，数据不会上传
             · 绝不自动转换数据类型（前导零、日期、大数字原样保留）
+            · 保存时保留原文件的编码与换行格式
 
             .NET 10 · WPF
             """,
-            "关于 CSV Editor",
+            "关于 科烽智能 CSV 编辑器",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
