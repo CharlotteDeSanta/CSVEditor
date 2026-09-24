@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <!--  程序集信息  -->
+  <PropertyGroup>
+    <AssemblyTitle>CSV Editor</AssemblyTitle>
+    <Product>CSV Editor</Product>
+    <Description>图形化 CSV 编辑器：本地解析、保留原始格式、支持大文件</Description>
+    <Company>CSV Editor</Company>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Copyright>© 2026 CSV Editor</Copyright>
+    <NeutralLanguage>zh-Hans</NeutralLanguage>
+  </PropertyGroup>
+
+  <!--
+    发布配置：x64 单文件、框架依赖（不含 .NET 运行时，目标机器需预装 .NET 10 桌面运行时）。
+    调试构建不受影响：运行时标识只在显式指定 runtime 参数时生效。
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!--  单文件不再从压缩包里加载程序集，启动更快；warp 打包保持单个 exe  -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <!--  保留真正需要的原生依赖在 exe 内，避免发布目录出现散落文件  -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!--  发布产物保持整洁：只保留中英文资源  -->
+    <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!--  tools/ 下是独立的测试与截图脚本工程，不参与主程序编译 -->
+  <ItemGroup>
+    <Compile Remove="tools/**" />
+    <None Remove="tools/**" />
+    <Page Remove="tools/**" />
+    <ApplicationDefinition Remove="tools/**" />
+    <Resource Remove="tools/**" />
+  </ItemGroup>
+
+</Project>

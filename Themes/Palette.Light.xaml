@@ -1,0 +1,71 @@
+<!--
+    浅色调色板（本程序仅使用浅色主题）
+    文字对比度按 WCAG AA 调整：正文 #101828（约 16:1）、次要文字 #475467（约 7.5:1）、
+    极淡文字 #667085（约 5.3:1），均高于 4.5:1 的正文阈值。
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  背景层级  -->
+    <Color x:Key="Color.Bg">#FFF5F7FA</Color>
+    <Color x:Key="Color.Surface">#FFFFFFFF</Color>
+    <Color x:Key="Color.Surface2">#FFF4F6FA</Color>
+    <Color x:Key="Color.Surface3">#FFE9EDF4</Color>
+    <Color x:Key="Color.Hover">#FFE4E9F2</Color>
+
+    <!--  描边  -->
+    <Color x:Key="Color.Border">#FFD3DAE6</Color>
+    <Color x:Key="Color.BorderStrong">#FFAEB9CC</Color>
+    <Color x:Key="Color.GridLine">#FFDCE2EC</Color>
+
+    <!--  文字  -->
+    <Color x:Key="Color.Text">#FF101828</Color>
+    <Color x:Key="Color.TextMuted">#FF475467</Color>
+    <Color x:Key="Color.TextFaint">#FF667085</Color>
+
+    <!--  强调色  -->
+    <Color x:Key="Color.Accent">#FF3B5BDB</Color>
+    <Color x:Key="Color.AccentHover">#FF2F4BC4</Color>
+    <Color x:Key="Color.AccentPress">#FF26409F</Color>
+    <Color x:Key="Color.AccentSoft">#FFE5EAFF</Color>
+
+    <!--  语义色  -->
+    <Color x:Key="Color.Danger">#FFC62828</Color>
+    <Color x:Key="Color.DangerSoft">#FFFDECEC</Color>
+    <Color x:Key="Color.Success">#FF15803D</Color>
+    <Color x:Key="Color.Warning">#FFB45309</Color>
+    <Color x:Key="Color.FindHit">#FFFFF0B8</Color>
+    <Color x:Key="Color.FindHitCurrent">#FFFBD24A</Color>
+
+    <!--  画刷  -->
+    <SolidColorBrush x:Key="Brush.Bg" Color="{StaticResource Color.Bg}" />
+    <SolidColorBrush x:Key="Brush.Surface" Color="{StaticResource Color.Surface}" />
+    <SolidColorBrush x:Key="Brush.Surface2" Color="{StaticResource Color.Surface2}" />
+    <SolidColorBrush x:Key="Brush.Surface3" Color="{StaticResource Color.Surface3}" />
+    <SolidColorBrush x:Key="Brush.Hover" Color="{StaticResource Color.Hover}" />
+    <SolidColorBrush x:Key="Brush.Border" Color="{StaticResource Color.Border}" />
+    <SolidColorBrush x:Key="Brush.BorderStrong" Color="{StaticResource Color.BorderStrong}" />
+    <SolidColorBrush x:Key="Brush.GridLine" Color="{StaticResource Color.GridLine}" />
+    <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
+    <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}" />
+    <SolidColorBrush x:Key="Brush.TextFaint" Color="{StaticResource Color.TextFaint}" />
+    <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" />
+    <SolidColorBrush x:Key="Brush.AccentHover" Color="{StaticResource Color.AccentHover}" />
+    <SolidColorBrush x:Key="Brush.AccentPress" Color="{StaticResource Color.AccentPress}" />
+    <SolidColorBrush x:Key="Brush.AccentSoft" Color="{StaticResource Color.AccentSoft}" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />
+    <SolidColorBrush x:Key="Brush.DangerSoft" Color="{StaticResource Color.DangerSoft}" />
+    <SolidColorBrush x:Key="Brush.Success" Color="{StaticResource Color.Success}" />
+    <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
+    <SolidColorBrush x:Key="Brush.FindHit" Color="{StaticResource Color.FindHit}" />
+    <SolidColorBrush x:Key="Brush.FindHitCurrent" Color="{StaticResource Color.FindHitCurrent}" />
+
+    <!--  行交替色  -->
+    <SolidColorBrush x:Key="Brush.RowAlt" Color="#FFFAFBFD" />
+    <SolidColorBrush x:Key="Brush.RowSelected" Color="#FFE5EAFF" />
+    <SolidColorBrush x:Key="Brush.CellSelected" Color="#FFD3DCFF" />
+
+    <!--  阴影  -->
+    <Color x:Key="Color.Shadow">#33000000</Color>
+
+</ResourceDictionary>

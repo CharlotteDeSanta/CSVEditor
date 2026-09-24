@@ -1,0 +1,856 @@
+<Window x:Class="CSVEditor.MainWindow"
+        x:Name="EditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:CSVEditor.Controls"
+        xmlns:local="clr-namespace:CSVEditor"
+        Title="CSV Editor"
+        Width="1280"
+        Height="800"
+        MinWidth="900"
+        MinHeight="560"
+        AllowDrop="True"
+        Background="{DynamicResource Brush.Bg}"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop"
+        FontFamily="{DynamicResource Font.Ui}"
+        ResizeMode="CanResize"
+        StateChanged="Window_StateChanged"
+        TextOptions.TextFormattingMode="Ideal"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None">
+
+    <!--
+        自绘标题栏：WindowStyle=None + WindowChrome。
+        WindowChrome 保留了系统级的窗口行为（拖拽、双击最大化、边缘缩放、
+        贴边分屏、Win+方向键），只是不再绘制系统标题栏。
+    -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome x:Name="Chrome"
+                      CaptionHeight="38"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      ResizeBorderThickness="6"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+
+        <!--  ==================== 行号转换器  ====================  -->
+        <local:RowNumberConverter x:Key="RowNumber" />
+
+        <!--  ==================== 单元格右键菜单  ====================  -->
+        <ContextMenu x:Key="CellContextMenu" Opened="CellContextMenu_Opened">
+            <MenuItem Command="Copy" Header="复制" InputGestureText="Ctrl+C" />
+            <MenuItem Command="Paste" Header="粘贴" InputGestureText="Ctrl+V" />
+            <MenuItem Command="local:EditorCommands.ClearCell" Header="清空内容" InputGestureText="Delete" />
+            <Separator />
+            <MenuItem Command="local:EditorCommands.InsertRowAbove" Header="在上方插入行" />
+            <MenuItem Command="local:EditorCommands.InsertRowBelow" Header="在下方插入行" />
+            <MenuItem Command="local:EditorCommands.InsertRowAtEnd" Header="在末尾追加行" />
+            <MenuItem Command="local:EditorCommands.DeleteRow" Header="删除选中行" />
+        </ContextMenu>
+
+        <!--  ==================== 列头右键菜单  ====================  -->
+        <ContextMenu x:Key="HeaderContextMenu" Opened="HeaderContextMenu_Opened">
+            <MenuItem Command="local:EditorCommands.InsertColumnBefore" Header="在左侧插入列" />
+            <MenuItem Command="local:EditorCommands.InsertColumnAfter" Header="在右侧插入列" />
+            <MenuItem Command="local:EditorCommands.RenameColumn" Header="重命名列…" InputGestureText="双击列头" />
+            <Separator />
+            <MenuItem Command="local:EditorCommands.DeleteColumn" Header="删除该列" />
+            <MenuItem Command="local:EditorCommands.AutoFitColumn" Header="自动调整列宽" />
+        </ContextMenu>
+
+        <!--  ==================== 单元格样式  ====================  -->
+        <!--
+            列分隔线的做法：由列头单元格与数据单元格自身的右边框绘制。
+            这样线的位置必然等于列边界（列宽由布局决定），不会出现“覆盖层算错坐标”
+            导致的整体偏移；行号列只需去掉自己那条右边框即可避免重线。
+        -->
+        <Style x:Key="CellWithMenu" TargetType="DataGridCell" BasedOn="{StaticResource DataGridCellStyle}">
+            <Setter Property="ContextMenu" Value="{StaticResource CellContextMenu}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Brush.Border}"
+                                BorderThickness="0,0,1,0"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              SnapsToDevicePixels="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="Transparent" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  ==================== 行头样式  ====================  -->
+        <Style x:Key="RowHeaderStyle" TargetType="DataGridRowHeader">
+            <Setter Property="Width" Value="58" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextFaint}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridRowHeader">
+                        <Border x:Name="Bd"
+                                Background="{DynamicResource Brush.Surface2}"
+                                BorderBrush="{DynamicResource Brush.BorderStrong}"
+                                BorderThickness="0,0,1,1"
+                                AutomationProperties.Name="{TemplateBinding Content}">
+                            <ContentPresenter Margin="6,0"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsRowSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.RowSelected}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  ==================== 行模板（左：行号，右：单元格）  ====================  -->
+        <Style x:Key="GridRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource DataGridRowStyle}">
+            <Setter Property="Header">
+                <Setter.Value>
+                    <MultiBinding Converter="{StaticResource RowNumber}">
+                        <Binding />
+                        <Binding Path="RowNumberContext" Source="{x:Reference EditorWindow}" />
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridRow">
+                        <Border x:Name="RowBorder"
+                                Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <DataGridRowHeader Grid.Column="0" Style="{StaticResource RowHeaderStyle}" />
+                                <DataGridCellsPresenter Grid.Column="1" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="AlternationIndex" Value="1">
+                                <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource Brush.RowAlt}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource Brush.Hover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource Brush.RowSelected}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  ==================== 表格  ====================  -->
+        <Style x:Key="SheetStyle" TargetType="DataGrid" BasedOn="{StaticResource DataGridStyle}">
+            <Setter Property="HeadersVisibility" Value="All" />
+            <Setter Property="CellStyle" Value="{StaticResource CellWithMenu}" />
+            <Setter Property="RowStyle" Value="{StaticResource GridRowStyle}" />
+        </Style>
+
+        <!--  ==================== 欢迎页按钮  ====================  -->
+        <Style x:Key="Hero.Button" TargetType="ButtonBase" BasedOn="{StaticResource Button.Subtle}">
+            <Setter Property="Padding" Value="18,9" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="FontSize" Value="{StaticResource Font.Size.Lg}" />
+        </Style>
+
+        <Style x:Key="Hero.DropLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+            <Setter Property="FontSize" Value="{StaticResource Font.Size.Xl}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <!--  ==================== 窗口控制按钮  ====================  -->
+        <Style x:Key="CaptionButton" TargetType="ButtonBase">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Bd"
+                                Background="Transparent"
+                                CornerRadius="{StaticResource Radius.Sm}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface3}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CaptionCloseButton" TargetType="ButtonBase" BasedOn="{StaticResource CaptionButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Bd"
+                                Background="Transparent"
+                                CornerRadius="{StaticResource Radius.Sm}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Danger}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentPress}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  ==================== 标题栏  ====================  -->
+        <Style x:Key="TitleBarText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Ui}" />
+            <Setter Property="FontSize" Value="{StaticResource Font.Size.Base}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <Style x:Key="TitleBarSubText" TargetType="TextBlock" BasedOn="{StaticResource TitleBarText}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextFaint}" />
+            <Setter Property="Margin" Value="10,0,0,0" />
+        </Style>
+
+        <!--  ==================== 菜单栏一级项  ====================  -->
+        <Style x:Key="MenuTop" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Padding="11,6"
+                                    Background="Transparent"
+                                    CornerRadius="6">
+                                <ContentPresenter VerticalAlignment="Center" ContentSource="Header" RecognizesAccessKey="True" />
+                            </Border>
+                            <!--  Popup 必须命名为 PART_Popup，否则 MenuItem 无法弹出子菜单（点击无反应）  -->
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,4,0,0"
+                                        Padding="4"
+                                        Background="{DynamicResource Brush.Surface}"
+                                        BorderBrush="{DynamicResource Brush.BorderStrong}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource Radius.Lg}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="18"
+                                                          Opacity="0.22"
+                                                          ShadowDepth="3"
+                                                          Color="#000000" />
+                                    </Border.Effect>
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+                            </Trigger>
+                            <Trigger Property="IsSubmenuOpen" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  ==================== 菜单条  ====================  -->
+        <Style x:Key="AppMenu" TargetType="Menu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Ui}" />
+            <Setter Property="FontSize" Value="{StaticResource Font.Size.Base}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Menu">
+                        <Border Background="{TemplateBinding Background}">
+                            <StackPanel IsItemsHost="True" Orientation="Horizontal" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <!--  Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Z / Ctrl+C / Ctrl+V / Ctrl+A 由框架命令自带手势  -->
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="ApplicationCommands.Redo" />
+        <KeyBinding Key="Z" Modifiers="Ctrl+Shift" Command="ApplicationCommands.Redo" />
+        <KeyBinding Key="G" Modifiers="Ctrl" Command="local:EditorCommands.GoTo" />
+        <KeyBinding Key="F" Modifiers="Ctrl" Command="ApplicationCommands.Find" />
+        <KeyBinding Key="H" Modifiers="Ctrl" Command="local:EditorCommands.Replace" />
+        <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="local:EditorCommands.ZoomIn" />
+        <KeyBinding Key="Add" Modifiers="Ctrl" Command="local:EditorCommands.ZoomIn" />
+        <KeyBinding Key="OemMinus" Modifiers="Ctrl" Command="local:EditorCommands.ZoomOut" />
+        <KeyBinding Key="Subtract" Modifiers="Ctrl" Command="local:EditorCommands.ZoomOut" />
+        <KeyBinding Key="D0" Modifiers="Ctrl" Command="local:EditorCommands.ZoomReset" />
+        <KeyBinding Key="NumPad0" Modifiers="Ctrl" Command="local:EditorCommands.ZoomReset" />
+    </Window.InputBindings>
+
+    <controls:RoundedBorder x:Name="WindowFrame"
+                            Background="{DynamicResource Brush.Bg}"
+                            BorderBrush="{DynamicResource Brush.BorderStrong}"
+                            BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  ============================================================  -->
+            <!--  自绘标题栏（处于 WindowChrome 的标题区域，可拖拽 / 双击最大化）  -->
+            <!--  ============================================================  -->
+            <Grid Grid.Row="0" Background="{DynamicResource Brush.Surface}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--  左：图标 + 标题  -->
+                <StackPanel Grid.Column="0"
+                            Margin="12,0,0,0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="20"
+                            Height="20"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource Brush.Accent}"
+                            CornerRadius="5">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   Text="C" />
+                    </Border>
+                    <TextBlock x:Name="TitleBarFileName"
+                               MaxWidth="520"
+                               Margin="10,0,0,0"
+                               Style="{StaticResource TitleBarText}"
+                               Text="未命名.csv" />
+                    <TextBlock Style="{StaticResource TitleBarSubText}" Text="CSV Editor" />
+                </StackPanel>
+
+                <!--  右：窗口控制按钮（需在 Chrome 中可点击）  -->
+                <StackPanel Grid.Column="1"
+                            Margin="0,5,6,0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Button AutomationProperties.Name="最小化"
+                            Click="Minimize_Click"
+                            Content="&#xE921;"
+                            Style="{StaticResource CaptionButton}"
+                            ToolTip="最小化" />
+                    <Button x:Name="MaximizeButton"
+                            AutomationProperties.Name="最大化"
+                            Click="MaximizeRestore_Click"
+                            Content="&#xE922;"
+                            Style="{StaticResource CaptionButton}"
+                            ToolTip="最大化" />
+                    <Button AutomationProperties.Name="关闭"
+                            Click="Close_Click"
+                            Content="&#xE8BB;"
+                            Style="{StaticResource CaptionCloseButton}"
+                            ToolTip="关闭" />
+                </StackPanel>
+            </Grid>
+
+            <!--  ============================================================  -->
+            <!--  菜单栏  -->
+            <!--  ============================================================  -->
+            <Border Grid.Row="1"
+                    Padding="8,5"
+                    Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="0,1,0,1">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                        <Menu VerticalAlignment="Center" Style="{StaticResource AppMenu}">
+                        <MenuItem Header="文件" Style="{StaticResource MenuTop}">
+                            <MenuItem Command="ApplicationCommands.New" Header="新建" InputGestureText="Ctrl+N" />
+                            <MenuItem Command="ApplicationCommands.Open" Header="打开…" InputGestureText="Ctrl+O" />
+                            <Separator />
+                            <MenuItem Command="ApplicationCommands.Save" Header="保存" InputGestureText="Ctrl+S" />
+                            <MenuItem Command="ApplicationCommands.SaveAs" Header="另存为…" InputGestureText="Ctrl+Shift+S" />
+                            <Separator />
+                            <MenuItem Command="local:EditorCommands.ExportCsv" Header="导出 CSV…" />
+                            <MenuItem Command="local:EditorCommands.ExportTsv" Header="导出 TSV…" />
+                            <MenuItem Command="local:EditorCommands.ExportJson" Header="导出 JSON…" />
+                            <MenuItem Command="local:EditorCommands.ExportExcel" Header="导出 Excel (.xlsx)…" />
+                            <Separator />
+                            <MenuItem Click="Exit_Click" Header="退出" InputGestureText="Alt+F4" />
+                        </MenuItem>
+                        <MenuItem Header="编辑" Style="{StaticResource MenuTop}">
+                            <MenuItem Command="ApplicationCommands.Undo" Header="撤销" InputGestureText="Ctrl+Z" />
+                            <MenuItem Command="ApplicationCommands.Redo" Header="重做" InputGestureText="Ctrl+Y" />
+                            <Separator />
+                            <MenuItem Command="ApplicationCommands.Copy" Header="复制" InputGestureText="Ctrl+C" />
+                            <MenuItem Command="ApplicationCommands.Paste" Header="粘贴" InputGestureText="Ctrl+V" />
+                            <MenuItem Command="local:EditorCommands.ClearCell" Header="清空内容" InputGestureText="Delete" />
+                            <Separator />
+                            <MenuItem Command="ApplicationCommands.Find" Header="查找" InputGestureText="Ctrl+F" />
+                            <MenuItem Command="local:EditorCommands.Replace" Header="替换…" InputGestureText="Ctrl+H" />
+                            <MenuItem Command="local:EditorCommands.GoTo" Header="跳转到行列…" InputGestureText="Ctrl+G" />
+                            <Separator />
+                            <MenuItem Command="ApplicationCommands.SelectAll" Header="全选" InputGestureText="Ctrl+A" />
+                        </MenuItem>
+                        <MenuItem Header="行与列" Style="{StaticResource MenuTop}">
+                            <MenuItem Command="local:EditorCommands.InsertRowAbove" Header="在上方插入行" />
+                            <MenuItem Command="local:EditorCommands.InsertRowBelow" Header="在下方插入行" />
+                            <MenuItem Command="local:EditorCommands.InsertRowAtEnd" Header="在末尾追加行" />
+                            <MenuItem Command="local:EditorCommands.DeleteRow" Header="删除选中行" />
+                            <Separator />
+                            <MenuItem Command="local:EditorCommands.InsertColumnBefore" Header="在左侧插入列" />
+                            <MenuItem Command="local:EditorCommands.InsertColumnAfter" Header="在右侧插入列" />
+                            <MenuItem Command="local:EditorCommands.RenameColumn" Header="重命名当前列…" InputGestureText="双击列头" />
+                            <MenuItem Command="local:EditorCommands.DeleteColumn" Header="删除选中列" />
+                            <Separator />
+                            <MenuItem Command="local:EditorCommands.AutoFitColumn" Header="自动调整列宽" />
+                            <MenuItem Command="local:EditorCommands.AutoFitAllColumns" Header="自动调整所有列宽" />
+                        </MenuItem>
+                        <MenuItem Header="视图" Style="{StaticResource MenuTop}">
+                            <MenuItem Command="local:EditorCommands.ZoomIn" Header="放大字号" InputGestureText="Ctrl+ +" />
+                            <MenuItem Command="local:EditorCommands.ZoomOut" Header="缩小字号" InputGestureText="Ctrl+ -" />
+                            <MenuItem Command="local:EditorCommands.ZoomReset" Header="恢复默认字号" InputGestureText="Ctrl+0" />
+                        </MenuItem>
+                        <MenuItem Header="帮助" Style="{StaticResource MenuTop}">
+                            <MenuItem Click="Shortcuts_Click" Header="快捷键一览" />
+                            <MenuItem Click="About_Click" Header="关于 CSV Editor" />
+                        </MenuItem>
+                    </Menu>
+                </StackPanel>
+
+                <!--  右侧：分隔符设置  -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="分隔符" />
+                    <ComboBox x:Name="DelimiterBox"
+                              Width="132"
+                              AutomationProperties.Name="分隔符"
+                              SelectionChanged="DelimiterBox_SelectionChanged"
+                              ToolTip="当前使用的字段分隔符（切换后用于保存与导出）">
+                        <ComboBoxItem Content="逗号 (,)" />
+                        <ComboBoxItem Content="制表符 (\t)" />
+                        <ComboBoxItem Content="分号 (;)" />
+                        <ComboBoxItem Content="竖线 (|)" />
+                        <ComboBoxItem Content="自定义…" />
+                    </ComboBox>
+                </StackPanel>
+
+                <Grid />
+            </DockPanel>
+        </Border>
+
+        <!--  ============================================================  -->
+        <!--  工具栏  -->
+        <!--  ============================================================  -->
+        <Border x:Name="ToolBarHost"
+                Grid.Row="2"
+                Padding="10,7"
+                Background="{DynamicResource Brush.Surface}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,0,0,1"
+                Visibility="Collapsed">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Click="Open_Click" Style="{StaticResource ToolButton}" ToolTip="打开 CSV 文件 (Ctrl+O)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.Folder}" Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText}" Text="打开" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="Save_Click" Style="{StaticResource ToolButton}" ToolTip="保存 (Ctrl+S)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.Save}" Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText}" Text="保存" />
+                        </StackPanel>
+                    </Button>
+                    <Rectangle Style="{StaticResource ToolBar.Separator}" />
+                    <Button Command="ApplicationCommands.Undo" Style="{StaticResource ToolButton}" ToolTip="撤销 (Ctrl+Z)">
+                        <Path Data="{DynamicResource Icon.Undo}" Style="{StaticResource Icon}" />
+                    </Button>
+                    <Button Command="ApplicationCommands.Redo" Style="{StaticResource ToolButton}" ToolTip="重做 (Ctrl+Y)">
+                        <Path Data="{DynamicResource Icon.Redo}" Style="{StaticResource Icon}" />
+                    </Button>
+                    <Rectangle Style="{StaticResource ToolBar.Separator}" />
+                    <Button Command="local:EditorCommands.InsertRowBelow" Style="{StaticResource ToolButton}" ToolTip="在当前行下方插入一行">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.RowAdd}" Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText}" Text="插入行" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="local:EditorCommands.InsertColumnAfter" Style="{StaticResource ToolButton}" ToolTip="在当前列右侧插入一列">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.ColAdd}" Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText}" Text="插入列" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="local:EditorCommands.DeleteRow" Style="{StaticResource ToolButton.Danger}" ToolTip="删除选中的行">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.RowDelete}"
+                                  Stroke="{DynamicResource Brush.Danger}"
+                                  Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText.Danger}" Text="删除行" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="local:EditorCommands.DeleteColumn" Style="{StaticResource ToolButton.Danger}" ToolTip="删除选中的列">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.ColDelete}"
+                                  Stroke="{DynamicResource Brush.Danger}"
+                                  Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText.Danger}" Text="删除列" />
+                        </StackPanel>
+                    </Button>
+                    <Rectangle Style="{StaticResource ToolBar.Separator}" />
+                    <ToggleButton x:Name="FindToggle"
+                                  Click="FindToggle_Click"
+                                  Style="{StaticResource ToggleButtonStyle}"
+                                  ToolTip="查找与替换 (Ctrl+F)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{DynamicResource Icon.Search}" Style="{StaticResource Icon}" />
+                            <TextBlock Style="{StaticResource ToolButtonText}" Text="查找 / 替换" />
+                        </StackPanel>
+                    </ToggleButton>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!--  ============================================================  -->
+        <!--  主内容区  -->
+        <!--  ============================================================  -->
+        <Grid Grid.Row="3">
+
+            <!--  ==== 欢迎页 ====  -->
+            <Grid x:Name="WelcomeView">
+                <StackPanel Width="840"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Text.Hero}" Text="科烽智能 CSV 编辑器" />
+                    <TextBlock Margin="0,12,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="{StaticResource Font.Size.Lg}"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               Text="易用性远远优于WPS与MS Office" />
+                    <TextBlock Margin="0,8,0,0"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextFaint}"
+                               Text="优化了性能与存储占用，无需联网，修改时也不会改变原有数据格式" />
+
+                    <Border Margin="0,30,0,0" Style="{StaticResource DropZone}">
+                        <StackPanel>
+                            <Path Width="34"
+                                  Height="34"
+                                  HorizontalAlignment="Center"
+                                  Data="{DynamicResource Icon.File}"
+                                  Stretch="Uniform"
+                                  Stroke="{DynamicResource Brush.Accent}"
+                                  StrokeThickness="1.3" />
+                            <TextBlock Margin="0,16,0,0"
+                                       Style="{StaticResource Hero.DropLabel}"
+                                       Text="将 CSV 文件拖放到此处" />
+                            <TextBlock Margin="0,8,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource Brush.TextMuted}"
+                                       Text="或选择以下方式开始" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Margin="0,22,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                        <Button Click="Open_Click" Style="{StaticResource Hero.Button}">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{DynamicResource Icon.Folder}" Style="{StaticResource Icon}" />
+                                <TextBlock Margin="8,0,0,0" Text="浏览文件" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="Paste_Click" Style="{StaticResource Hero.Button}">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{DynamicResource Icon.Paste}" Style="{StaticResource Icon}" />
+                                <TextBlock Margin="8,0,0,0" Text="粘贴 (Ctrl+V)" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="Sample_Click" Style="{StaticResource Button.Primary}">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{DynamicResource Icon.Check}"
+                                      Stroke="White"
+                                      Style="{StaticResource Icon}" />
+                                <TextBlock Margin="8,0,0,0" FontWeight="SemiBold" Text="试用示例数据" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,34,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                        <Border Style="{StaticResource Pill}">
+                            <TextBlock Style="{StaticResource PillText}" Text="🔒 稳定性高，不闪退" />
+                        </Border>
+                        <Border Margin="10,0,0,0" Style="{StaticResource Pill}">
+                            <TextBlock Style="{StaticResource PillText}" Text="⚡ 性能优秀，不卡顿" />
+                        </Border>
+                        <Border Margin="10,0,0,0" Style="{StaticResource Pill}">
+                            <TextBlock Style="{StaticResource PillText}" Text="💚 功能易用，不复杂" />
+                        </Border>
+                    </StackPanel>
+
+                    <TextBlock Margin="0,26,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="{StaticResource Font.Size.Sm}"
+                               Foreground="{DynamicResource Brush.TextFaint}"
+                               Text="支持 UTF-8 / GBK 等编码自动识别，逗号、制表符、分号、竖线分隔" />
+                </StackPanel>
+            </Grid>
+
+            <!--  ==== 编辑器 ====  -->
+            <Grid x:Name="EditorView" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <DataGrid x:Name="Sheet"
+                          Grid.Row="0"
+                          AutoGeneratingColumn="Sheet_AutoGeneratingColumn"
+                          BeginningEdit="Sheet_BeginningEdit"
+                          CellEditEnding="Sheet_CellEditEnding"
+                          CurrentCellChanged="Sheet_CurrentCellChanged"
+                          Loaded="Sheet_Loaded"
+                          PreparingCellForEdit="Sheet_PreparingCellForEdit"
+                          PreviewKeyDown="Sheet_PreviewKeyDown"
+                          SelectionChanged="Sheet_SelectionChanged"
+                          Style="{StaticResource SheetStyle}" />
+
+                <!--  ==== 查找 / 替换面板 ====  -->
+                <Border x:Name="FindPanel"
+                        Grid.Row="1"
+                        Padding="12,10"
+                        Background="{DynamicResource Brush.Surface}"
+                        BorderBrush="{DynamicResource Brush.Border}"
+                        BorderThickness="0,1,0,0"
+                        Visibility="Collapsed">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Style="{StaticResource FieldLabel}"
+                                   Text="查找" />
+                        <TextBox x:Name="FindBox"
+                                 Grid.Row="0"
+                                 Grid.Column="1"
+                                 KeyDown="FindBox_KeyDown"
+                                 TextChanged="FindBox_TextChanged" />
+                        <StackPanel Grid.Row="0"
+                                    Grid.Column="2"
+                                    Margin="8,0,0,0"
+                                    Orientation="Horizontal">
+                            <Button Click="FindPrev_Click"
+                                    Content="上一个"
+                                    Style="{StaticResource Button.Subtle}"
+                                    ToolTip="上一个匹配 (Shift+Enter)" />
+                            <Button Margin="6,0,0,0"
+                                    Click="FindNext_Click"
+                                    Content="下一个"
+                                    Style="{StaticResource Button.Subtle}"
+                                    ToolTip="下一个匹配 (Enter)" />
+                            <TextBlock x:Name="MatchInfo"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Brush.TextFaint}"
+                                       Text="0 个匹配" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="0"
+                                    Grid.Column="3"
+                                    Margin="14,0,0,0"
+                                    Orientation="Horizontal">
+                            <CheckBox x:Name="MatchCaseCheck"
+                                      Click="FindOption_Changed"
+                                      Content="区分大小写" />
+                            <CheckBox x:Name="WholeWordCheck"
+                                      Margin="14,0,0,0"
+                                      Click="FindOption_Changed"
+                                      Content="全字匹配" />
+                            <CheckBox x:Name="RegexCheck"
+                                      Margin="14,0,0,0"
+                                      Click="FindOption_Changed"
+                                      Content="正则表达式" />
+                            <Button Margin="16,0,0,0"
+                                    Click="CloseFind_Click"
+                                    Style="{StaticResource Button.Ghost}"
+                                    ToolTip="关闭 (Esc)">
+                                <Path Data="{DynamicResource Icon.Close}" Style="{StaticResource Icon}" />
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,10,7,0"
+                                   Style="{StaticResource FieldLabel}"
+                                   Text="替换为" />
+                        <TextBox x:Name="ReplaceBox"
+                                 Grid.Row="1"
+                                 Grid.Column="1"
+                                 Margin="0,10,0,0"
+                                 KeyDown="ReplaceBox_KeyDown" />
+                        <StackPanel Grid.Row="1"
+                                    Grid.Column="2"
+                                    Margin="8,10,0,0"
+                                    Orientation="Horizontal">
+                            <Button Click="ReplaceOne_Click" Content="替换" Style="{StaticResource Button.Subtle}" />
+                            <Button Margin="6,0,0,0"
+                                    Click="ReplaceAll_Click"
+                                    Content="全部替换"
+                                    Style="{StaticResource Button.Subtle}" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="FindHint"
+                                   Grid.Row="2"
+                                   Grid.Column="1"
+                                   Grid.ColumnSpan="3"
+                                   Margin="0,10,0,0"
+                                   FontSize="{StaticResource Font.Size.Sm}"
+                                   Foreground="{DynamicResource Brush.TextFaint}"
+                                   Text="Enter 下一个 · Shift+Enter 上一个 · Esc 关闭 · 支持正则表达式（例如 ^\d{3}$）" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!--  ==== 拖放提示遮罩 ====  -->
+            <Border x:Name="DropOverlay"
+                    Margin="10"
+                    Background="{DynamicResource Brush.AccentSoft}"
+                    BorderBrush="{DynamicResource Brush.Accent}"
+                    BorderThickness="2"
+                    CornerRadius="{StaticResource Radius.Lg}"
+                    IsHitTestVisible="False"
+                    Opacity="0.96"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Path Width="40"
+                          Height="40"
+                          HorizontalAlignment="Center"
+                          Data="{DynamicResource Icon.File}"
+                          Stretch="Uniform"
+                          Stroke="{DynamicResource Brush.Accent}"
+                          StrokeThickness="1.2" />
+                    <TextBlock Margin="0,14,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="{StaticResource Font.Size.Xl}"
+                               FontWeight="SemiBold"
+                               Text="松开鼠标即可打开 CSV 文件" />
+                </StackPanel>
+            </Border>
+
+            <!--  ==== 提示气泡 ====  -->
+            <Border x:Name="ToastHost" Style="{StaticResource Toast}">
+                <TextBlock x:Name="ToastText" Style="{StaticResource ToastText}" />
+            </Border>
+        </Grid>
+
+        <!--  ============================================================  -->
+        <!--  状态栏  -->
+        <!--  ============================================================  -->
+        <Border Grid.Row="4"
+                Padding="14,5,14,4"
+                Background="{DynamicResource Brush.Surface}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <TextBlock x:Name="StatusRows" Style="{StaticResource StatusText}" Text="0 行" />
+                    <Rectangle Style="{StaticResource StatusDivider}" />
+                    <TextBlock x:Name="StatusColumns" Style="{StaticResource StatusText}" Text="0 列" />
+                    <Rectangle Style="{StaticResource StatusDivider}" />
+                    <TextBlock x:Name="StatusHeader" Style="{StaticResource StatusText}" Text="含表头" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <TextBlock x:Name="StatusSelection" Style="{StaticResource StatusText}" Text="未选择" />
+                    <Rectangle Style="{StaticResource StatusDivider}" />
+                    <TextBlock x:Name="StatusEncoding" Style="{StaticResource StatusText}" Text="UTF-8" />
+                    <Rectangle Style="{StaticResource StatusDivider}" />
+                    <TextBlock x:Name="StatusDelimiter" Style="{StaticResource StatusText}" Text="分隔符：逗号 (,)" />
+                </StackPanel>
+
+                <TextBlock x:Name="StatusMessage"
+                           Style="{StaticResource StatusText}"
+                           Text="就绪"
+                           TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+        </Grid>
+    </controls:RoundedBorder>
+</Window>

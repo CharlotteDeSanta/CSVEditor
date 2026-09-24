@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RoundTripProbe</AssemblyName>
+    <RootNamespace>RoundTripProbe</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\Models\*.cs" />
+    <Compile Include="..\..\Services\CsvParser.cs" />
+    <Compile Include="..\..\Services\CsvFileService.cs" />
+    <Compile Include="..\..\Services\TextFileService.cs" />
+    <Compile Include="..\..\Services\CsvDocument.cs" />
+    <Compile Include="..\..\Services\UndoStack.cs" />
+    <Compile Include="..\..\Services\Commands.cs" />
+    <Compile Include="..\..\Services\DocumentEditor.cs" />
+    <Compile Include="..\..\Services\ExportService.cs" />
+    <Compile Include="..\..\Services\SampleData.cs" />
+  </ItemGroup>
+
+</Project>

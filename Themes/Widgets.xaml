@@ -1,0 +1,196 @@
+<!--
+    组合控件样式：图标、工具栏按钮、开关按钮、卡片、徽标、快捷键提示
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:controls="clr-namespace:CSVEditor.Controls">
+
+    <!--  ==================== 图标 ====================  -->
+
+    <Style x:Key="Icon" TargetType="Path">
+        <Setter Property="Width" Value="15" />
+        <Setter Property="Height" Value="15" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+        <Setter Property="StrokeStartLineCap" Value="Round" />
+        <Setter Property="StrokeEndLineCap" Value="Round" />
+        <Setter Property="StrokeLineJoin" Value="Round" />
+        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="Icon.Accent" TargetType="Path" BasedOn="{StaticResource Icon}">
+        <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+    </Style>
+
+    <!--  ==================== 工具栏按钮 ====================  -->
+
+    <!--  图标 + 文字：按钮自身承载悬停背景，内层元素在悬停时提升对比度  -->
+    <Style x:Key="ToolButton" TargetType="ButtonBase" BasedOn="{StaticResource Button.Ghost}">
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="Margin" Value="1,0" />
+    </Style>
+
+    <Style x:Key="ToolButton.Danger" TargetType="ButtonBase" BasedOn="{StaticResource ToolButton}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+    </Style>
+
+    <Style x:Key="ToolButtonText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Base}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="7,0,0,0" />
+    </Style>
+
+    <Style x:Key="ToolButtonText.Danger" TargetType="TextBlock" BasedOn="{StaticResource ToolButtonText}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+    </Style>
+
+    <!--  ==================== 开关按钮（查找选项用）  ====================  -->
+
+    <Style x:Key="ToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource Button.Ghost}">
+        <Setter Property="Padding" Value="9,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource Radius.Md}">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSoft}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  ==================== 卡片 ====================  -->
+
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Lg}" />
+    </Style>
+
+    <!--  拖放区域：使用虚线描边提示可放置  -->
+    <Style x:Key="DropZone" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Lg}" />
+        <Setter Property="Padding" Value="0,44" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <!--  ==================== 徽标（圆角矩形）  ====================  -->
+
+    <Style x:Key="Pill" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Md}" />
+        <Setter Property="Padding" Value="10,5" />
+    </Style>
+
+    <Style x:Key="PillText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Sm}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    </Style>
+
+    <!--  ==================== 快捷键提示 ====================  -->
+
+    <Style x:Key="KeyCap" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="5,1" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="KeyCapText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Xs}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextFaint}" />
+    </Style>
+
+    <!--  ==================== 状态栏 ====================  -->
+
+    <Style x:Key="StatusText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Sm}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="StatusDivider" TargetType="Rectangle">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Height" Value="12" />
+        <Setter Property="Margin" Value="12,0" />
+        <Setter Property="Fill" Value="{StaticResource Brush.Border}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!--  ==================== 轻量提示气泡（圆角矩形）  ====================  -->
+
+    <Style x:Key="Toast" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Lg}" />
+        <Setter Property="Padding" Value="18,10" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,0,26" />
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="18"
+                                  Opacity="0.18"
+                                  ShadowDepth="3"
+                                  Color="#000000" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ToastText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Base}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    </Style>
+
+    <!--  ==================== 排版小工具 ====================  -->
+
+    <Style x:Key="SectionLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.SectionTitle}">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Sm}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,7,0" />
+    </Style>
+
+</ResourceDictionary>

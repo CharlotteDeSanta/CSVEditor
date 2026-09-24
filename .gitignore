@@ -1,0 +1,17 @@
+## 构建产物
+bin/
+obj/
+.vs/
+
+## 本地设置
+settings/
+
+## 发布配置的用户级文件
+*.pubxml.user
+
+## 开发期截图产物
+screenshots/
+
+## 自检工程产物
+tools/RoundTripProbe/bin/
+tools/RoundTripProbe/obj/

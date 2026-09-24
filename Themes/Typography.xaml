@@ -1,0 +1,108 @@
+<!--
+    CSV Editor 设计系统
+    参考 csveditor.com 的视觉语言：圆角卡片、细描边、克制的强调色、清晰的字号层级
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--  ==================== 排版 ====================  -->
+
+    <FontFamily x:Key="Font.Ui">Microsoft YaHei UI, Segoe UI, PingFang SC, sans-serif</FontFamily>
+    <FontFamily x:Key="Font.Mono">Cascadia Mono, Consolas, Microsoft YaHei UI, monospace</FontFamily>
+
+    <sys:Double x:Key="Font.Size.Xs">11</sys:Double>
+    <sys:Double x:Key="Font.Size.Sm">12</sys:Double>
+    <sys:Double x:Key="Font.Size.Base">13</sys:Double>
+    <sys:Double x:Key="Font.Size.Lg">15</sys:Double>
+    <sys:Double x:Key="Font.Size.Xl">19</sys:Double>
+    <sys:Double x:Key="Font.Size.Hero">30</sys:Double>
+
+    <!--  ==================== 几何 ====================  -->
+
+    <CornerRadius x:Key="Radius.Sm">4</CornerRadius>
+    <CornerRadius x:Key="Radius.Md">6</CornerRadius>
+    <CornerRadius x:Key="Radius.Lg">10</CornerRadius>
+
+    <Thickness x:Key="Pad.Btn">10,5</Thickness>
+    <Thickness x:Key="Pad.Input">9,5</Thickness>
+
+    <!--  ==================== 下拉箭头路径 ====================  -->
+
+    <PathGeometry x:Key="Geometry.Chevron" Figures="M 0,0 L 4.5,4.5 L 9,0" />
+
+    <!--  ==================== 图标路径（16x16 网格） ====================  -->
+
+    <PathGeometry x:Key="Icon.Folder" Figures="M 2,4.5 A 1.5,1.5 0 0 1 3.5,3 L 6,3 L 7.5,4.8 L 12.5,4.8 A 1.5,1.5 0 0 1 14,6.3 L 14,11.5 A 1.5,1.5 0 0 1 12.5,13 L 3.5,13 A 1.5,1.5 0 0 1 2,11.5 Z" />
+    <PathGeometry x:Key="Icon.Save" Figures="M 3,2.5 L 10.6,2.5 L 13.5,5.4 L 13.5,12 A 1.5,1.5 0 0 1 12,13.5 L 4,13.5 A 1.5,1.5 0 0 1 2.5,12 L 2.5,4 A 1.5,1.5 0 0 1 4,2.5 Z M 5.5,2.5 L 5.5,6.5 L 10,6.5 L 10,2.5 M 5,9.5 L 11,9.5 L 11,13 L 5,13 Z" />
+    <PathGeometry x:Key="Icon.Plus" Figures="M 8,3.2 L 8,12.8 M 3.2,8 L 12.8,8" />
+    <PathGeometry x:Key="Icon.Undo" Figures="M 6.2,4 L 2.6,7.4 L 6.2,10.8 M 2.9,7.4 L 9.6,7.4 A 3.7,3.7 0 0 1 9.6,14.4 L 7.4,14.4" />
+    <PathGeometry x:Key="Icon.Redo" Figures="M 9.8,4 L 13.4,7.4 L 9.8,10.8 M 13.1,7.4 L 6.4,7.4 A 3.7,3.7 0 0 0 6.4,14.4 L 8.6,14.4" />
+    <PathGeometry x:Key="Icon.Search" Figures="M 7.2,2.6 A 4.6,4.6 0 1 1 7.19,2.6 Z M 10.7,10.7 L 14,14" />
+    <PathGeometry x:Key="Icon.Close" Figures="M 4,4 L 12,12 M 12,4 L 4,12" />
+    <PathGeometry x:Key="Icon.RowAdd" Figures="M 2.5,4 L 13.5,4 M 2.5,8 L 13.5,8 M 2.5,12 L 7,12 M 11,10.4 L 11,14.6 M 8.9,12.5 L 13.1,12.5" />
+    <PathGeometry x:Key="Icon.RowDelete" Figures="M 2.5,4 L 13.5,4 M 2.5,8 L 13.5,8 M 2.5,12 L 7.4,12 M 9.2,10.9 L 13.4,15.1 M 13.4,10.9 L 9.2,15.1" />
+    <PathGeometry x:Key="Icon.ColAdd" Figures="M 4,2.5 L 4,13.5 M 8,2.5 L 8,13.5 M 12,2.5 L 12,7 M 10,11 L 14,11 M 14,11 L 14,15" />
+    <PathGeometry x:Key="Icon.ColDelete" Figures="M 4.5,2.5 L 4.5,13.5 M 8.5,2.5 L 8.5,13.5 M 12.4,11 L 16,14.6 M 16,11 L 12.4,14.6" />
+    <PathGeometry x:Key="Icon.Trash" Figures="M 3,4.5 L 13,4.5 M 6.3,4.5 L 6.3,2.8 L 9.7,2.8 L 9.7,4.5 M 4.6,4.5 L 5.4,13.2 L 10.6,13.2 L 11.4,4.5 M 6.9,6.8 L 7.1,11 M 9.1,6.8 L 8.9,11" />
+    <PathGeometry x:Key="Icon.Paste" Figures="M 6,3 L 4.6,3 A 1.4,1.4 0 0 0 3.2,4.4 L 3.2,12.2 A 1.4,1.4 0 0 0 4.6,13.6 L 11.4,13.6 A 1.4,1.4 0 0 0 12.8,12.2 L 12.8,4.4 A 1.4,1.4 0 0 0 11.4,3 L 10,3 M 6,2.2 L 10,2.2 L 10,4.4 L 6,4.4 Z M 6.2,7.6 L 9.8,7.6 M 6.2,10.4 L 9.8,10.4" />
+    <PathGeometry x:Key="Icon.File" Figures="M 4,2.5 L 9.6,2.5 L 12.4,5.3 L 12.4,13.5 L 4,13.5 Z M 9.4,2.6 L 9.4,5.4 L 12.3,5.4 M 6,8 L 10.4,8 M 6,10.4 L 10.4,10.4" />
+    <PathGeometry x:Key="Icon.Replace" Figures="M 2.6,5.2 L 10.4,5.2 L 8.2,3 M 13.4,10.8 L 5.6,10.8 L 7.8,13" />
+    <PathGeometry x:Key="Icon.Check" Figures="M 3.2,8.4 L 6.6,11.8 L 12.8,4.6" />
+    <PathGeometry x:Key="Icon.Export" Figures="M 8,10.4 L 8,2.4 M 5,5.4 L 8,2.4 L 11,5.4 M 3,9.6 L 3,12.6 A 1.4,1.4 0 0 0 4.4,14 L 11.6,14 A 1.4,1.4 0 0 0 13,12.6 L 13,9.6" />
+
+    <!--  ==================== 文案样式 ====================  -->
+
+    <Style x:Key="Text.Base" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Base}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+    </Style>
+
+    <Style x:Key="Text.Muted" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    </Style>
+
+    <Style x:Key="Text.Faint" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Sm}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextFaint}" />
+    </Style>
+
+    <Style x:Key="Text.SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Sm}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    </Style>
+
+    <Style x:Key="Text.Hero" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{StaticResource Font.Size.Hero}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!--  ==================== 焦点视觉 ====================  -->
+
+    <Style x:Key="Focus.Visual" TargetType="{x:Type Control}">
+        <Setter Property="FocusVisualStyle">
+            <Setter.Value>
+                <Style>
+                    <Setter Property="Control.Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <Rectangle Stroke="{StaticResource Brush.Accent}"
+                                           StrokeThickness="1.4"
+                                           StrokeDashArray="2 2"
+                                           RadiusX="4"
+                                           RadiusY="4"
+                                           Margin="-2" />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
